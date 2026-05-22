@@ -31,8 +31,7 @@ pip install quicnz
 
 ## Getting an API key
 
-Log in to the [Quic portal](https://account.quic.nz/), navigate to **Settings**,
-and generate an API key.
+Log in to the [Quic portal](https://account.quic.nz/), select a service, navigate to the bottom of the page, below your product details, and you should find your API key. If the field is empty, click "Roll API Key" to generate the key.
 
 ## Quick start
 
