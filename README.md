@@ -9,7 +9,8 @@ wraps that API with a clean, fully-typed async interface built on
 [aiohttp](https://docs.aiohttp.org/).
 
 > **Home Assistant integration:** A separate `ha-quicnz` custom integration
-> that uses this library as a dependency is maintained in a different repository.
+> that uses this library as a dependency is maintained at
+> https://github.com/ageron/ha-quicnz
 
 > **Disclaimer:** This project is an independent, community-maintained library
 > and is **not affiliated with, endorsed by, or supported by Quic Broadband /
@@ -144,7 +145,7 @@ cached server-side for 5 minutes; the weather map is cached for 6 minutes.
 
 ```bash
 # Clone and install in editable mode with dev extras
-git clone https://github.com/quicnz/quicnz
+git clone https://github.com/ageron/quicnz
 cd quicnz
 pip install -e ".[dev]"
 
