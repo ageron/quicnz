@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import os
+import time
 from types import TracebackType
-from typing import Any
+from typing import Any, Literal
 
 import aiohttp
 
@@ -12,6 +13,7 @@ from .exceptions import QuicAPIError, QuicAuthError, QuicNotFoundError
 from .models import Session
 
 BASE_URL = "https://api.quic.nz/v1"
+WEBSITE_WEATHERMAP_URL = "https://www.quic.nz/content/load.png"
 
 
 class QuicClient:
@@ -98,11 +100,25 @@ class QuicClient:
             await self._raise_for_status(resp)
             return await resp.json(content_type=None)
 
-    async def _get_bytes(self, path: str) -> bytes:
+    async def _get_bytes(self, path: str, **params: str) -> bytes:
         """Perform a GET request and return the raw response body."""
         session = self._require_session()
         url = f"{BASE_URL}{path}"
-        async with session.get(url, headers=self._headers) as resp:
+        async with session.get(url, headers=self._headers, params=params) as resp:
+            await self._raise_for_status(resp)
+            return await resp.read()
+
+    async def _get_bytes_url(
+        self,
+        url: str,
+        *,
+        params: dict[str, str] | None = None,
+        include_auth: bool = True,
+    ) -> bytes:
+        """Perform a GET request for an absolute URL and return raw bytes."""
+        session = self._require_session()
+        headers = self._headers if include_auth else None
+        async with session.get(url, headers=headers, params=params) as resp:
             await self._raise_for_status(resp)
             return await resp.read()
 
@@ -144,10 +160,23 @@ class QuicClient:
         data = await self._get_json("/session", service=service_id)
         return Session.from_api(data)
 
-    async def get_weathermap(self) -> bytes:
+    async def get_weathermap(self, source: Literal["api", "website"] = "website") -> bytes:
         """Return the Quic network weather map as raw JPEG bytes.
 
-        Corresponds to ``GET /v1/weathermap``.
-        The image is cached server-side for 6 minutes.
+        The default source fetches from Quic's public website endpoint
+        (``/content/load.png``), which may be fresher during API bugs.
+        You can pass ``source="api"`` to use ``GET /v1/weathermap``.
+
+        The weather map is regenerated roughly every 6 minutes.
         """
-        return await self._get_bytes("/weathermap")
+        ts_ms = str(int(time.time() * 1000))
+        if source == "website":
+            return await self._get_bytes_url(
+                WEBSITE_WEATHERMAP_URL,
+                params={"t": ts_ms},
+                include_auth=False,
+            )
+        if source == "api":
+            # Quic's site sends a timestamp query string to avoid stale cache hits.
+            return await self._get_bytes("/weathermap", t=ts_ms)
+        raise ValueError("source must be either 'api' or 'website'")

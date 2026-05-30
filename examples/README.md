@@ -34,6 +34,8 @@ Then run any example directly:
 python examples/list_services.py
 python examples/session_status.py                 # uses your first service
 python examples/session_status.py service123      # specify a service ID
-python examples/download_weathermap.py            # saves weathermap.jpg
+python examples/download_weathermap.py            # saves weathermap.jpg (website source by default)
+python examples/download_weathermap.py --source api  # use API source
 python examples/download_weathermap.py ~/map.jpg  # custom output path
+python examples/download_weathermap.py --wait-minutes 6  # wait for next regeneration window
 ```

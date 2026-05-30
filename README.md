@@ -93,7 +93,7 @@ environment variable is used.  A `ValueError` is raised if neither is provided.
 |---|---|---|
 | `get_services()` | `list[str]` | Service IDs authorised for this API key |
 | `get_session(service_id)` | `Session` | Active session for a service |
-| `get_weathermap()` | `bytes` | JPEG bytes of the Quic network weather map |
+| `get_weathermap(source="website")` | `bytes` | Weather map image bytes (website or API source) |
 
 ### `Session`
 
@@ -139,6 +139,12 @@ environment variable is used.  A `ValueError` is raised if neither is provided.
 
 The Quic API enforces a limit of **120 requests per minute**.  Session data is
 cached server-side for 5 minutes; the weather map is cached for 6 minutes.
+
+The default weather map source is the website endpoint. Use the API endpoint explicitly if preferred:
+
+```python
+image = await client.get_weathermap(source="api")
+```
 
 ## Development
 

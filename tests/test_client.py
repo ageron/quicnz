@@ -7,6 +7,7 @@ import pytest
 from quicnz import QuicAPIError, QuicAuthError, QuicClient, QuicNotFoundError, Session
 
 BASE = "https://api.quic.nz/v1"
+WEBSITE_WEATHERMAP_URL = "https://www.quic.nz/content/load.png"
 API_KEY = "test-api-key"
 
 # ---------------------------------------------------------------------------
@@ -217,21 +218,70 @@ async def test_session_is_not_connected(mock_aiohttp):
 # ---------------------------------------------------------------------------
 
 
-async def test_get_weathermap(mock_aiohttp):
-    mock_aiohttp.get(f"{BASE}/weathermap", body=WEATHERMAP_BYTES, content_type="image/jpeg")
+async def test_get_weathermap(mock_aiohttp, monkeypatch):
+    expected_ts_ms = 1780181081615
+    mock_aiohttp.get(
+        f"{WEBSITE_WEATHERMAP_URL}?t={expected_ts_ms}",
+        body=WEATHERMAP_BYTES,
+        content_type="image/png",
+    )
+    mock_aiohttp.get(
+        f"{BASE}/weathermap?t={expected_ts_ms}",
+        body=WEATHERMAP_BYTES,
+        content_type="image/jpeg",
+    )
 
+    monkeypatch.setattr("quicnz.client.time.time", lambda: expected_ts_ms / 1000)
+    async with QuicClient(API_KEY) as client:
+        data = await client.get_weathermap(source="api")
+
+    assert data == WEATHERMAP_BYTES
+
+
+async def test_get_weathermap_auth_error(mock_aiohttp, monkeypatch):
+    expected_ts_ms = 1780181081615
+    mock_aiohttp.get(f"{BASE}/weathermap?t={expected_ts_ms}", status=403)
+
+    monkeypatch.setattr("quicnz.client.time.time", lambda: expected_ts_ms / 1000)
+    async with QuicClient(API_KEY) as client:
+        with pytest.raises(QuicAuthError):
+            await client.get_weathermap(source="api")
+
+
+async def test_get_weathermap_website_source(mock_aiohttp, monkeypatch):
+    expected_ts_ms = 1780181081615
+    mock_aiohttp.get(
+        f"{WEBSITE_WEATHERMAP_URL}?t={expected_ts_ms}",
+        body=WEATHERMAP_BYTES,
+        content_type="image/png",
+    )
+
+    monkeypatch.setattr("quicnz.client.time.time", lambda: expected_ts_ms / 1000)
+    async with QuicClient(API_KEY) as client:
+        data = await client.get_weathermap(source="website")
+
+    assert data == WEATHERMAP_BYTES
+
+
+async def test_get_weathermap_defaults_to_website(mock_aiohttp, monkeypatch):
+    expected_ts_ms = 1780181081615
+    mock_aiohttp.get(
+        f"{WEBSITE_WEATHERMAP_URL}?t={expected_ts_ms}",
+        body=WEATHERMAP_BYTES,
+        content_type="image/png",
+    )
+
+    monkeypatch.setattr("quicnz.client.time.time", lambda: expected_ts_ms / 1000)
     async with QuicClient(API_KEY) as client:
         data = await client.get_weathermap()
 
     assert data == WEATHERMAP_BYTES
 
 
-async def test_get_weathermap_auth_error(mock_aiohttp):
-    mock_aiohttp.get(f"{BASE}/weathermap", status=403)
-
+async def test_get_weathermap_invalid_source(mock_aiohttp):
     async with QuicClient(API_KEY) as client:
-        with pytest.raises(QuicAuthError):
-            await client.get_weathermap()
+        with pytest.raises(ValueError, match="source must be either"):
+            await client.get_weathermap(source="invalid")  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
